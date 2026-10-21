@@ -1,55 +1,70 @@
 import gsap from "gsap";
-import { Container, Sprite, Text } from "pixi.js";
+import { Container, Text } from "pixi.js";
 import { SceneUtils } from "../core/App";
-import { centerObjects } from "../utils/misc";
+import { Layout } from "../core/Viewport";
+import { INTRO, LOADING } from "../config";
+import Backdrop from "../objects/Backdrop";
+import VaultScene from "./VaultScene";
 
 export default class Game extends Container {
   label = "Game";
 
-  private background!: Sprite;
+  private loadingText?: Text;
+  private backdrop?: Backdrop;
+  private vault?: VaultScene;
 
   constructor(protected utils: SceneUtils) {
     super();
   }
 
   async load() {
-    const text = new Text({
+    this.loadingText = new Text({
       text: "Loading...",
-      style: { fontFamily: "Verdana", fontSize: 50, fill: "white" },
+      style: LOADING,
       resolution: 2,
     });
-
-    centerObjects(text);
-    text.anchor.set(0.5);
-
-    this.addChild(text);
+    this.loadingText.anchor.set(0.5);
+    this.addChild(this.loadingText);
+    this.onResize(this.utils.viewport.layout);
 
     await this.utils.assetLoader.loadAssets();
   }
 
-  start() {
+  async start() {
     this.removeChildren();
+    this.loadingText?.destroy();
+    this.loadingText = undefined;
 
-    this.background = Sprite.from("background");
-    this.background.anchor.set(0.5);
-    this.addChild(this.background);
+    this.backdrop = new Backdrop();
+    this.vault = new VaultScene();
+    this.addChild(this.backdrop, this.vault);
 
-    this.onResize(window.innerWidth, window.innerHeight);
+    this.onResize(this.utils.viewport.layout);
 
-    gsap.from(this.background, { alpha: 0, duration: 0.8, ease: "power2.out" });
+    gsap.from([this.backdrop, this.vault], {
+      alpha: 0,
+      duration: INTRO.duration,
+      ease: INTRO.ease,
+    });
+
+    if (
+      import.meta.env.DEV &&
+      new URLSearchParams(location.search).has("debug")
+    ) {
+      const { default: DebugOverlay } = await import("../debug/DebugOverlay");
+      const overlay = new DebugOverlay(this.vault);
+      await overlay.load();
+    }
   }
 
   update(_delta: number) {}
 
-  onResize(width: number, height: number) {
-    if (!this.background) return;
-
-    const scale = Math.max(
-      width / this.background.texture.width,
-      height / this.background.texture.height,
+  onResize(layout: Layout) {
+    this.loadingText?.position.set(
+      layout.screenWidth / 2,
+      layout.screenHeight / 2,
     );
-
-    this.background.scale.set(scale);
-    this.background.position.set(width / 2, height / 2);
+    this.backdrop?.applyLayout(layout);
+    this.vault?.applyLayout(layout);
   }
 }
