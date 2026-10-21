@@ -1,5 +1,8 @@
+import gsap from "gsap";
 import { EventEmitter } from "pixi.js";
-import { GAME, INPUT } from "../config";
+import { audio } from "../audio/AudioManager";
+import { FAIL, GAME, HANDLE, INPUT, KEYPAD } from "../config";
+import ScreenFx from "../fx/ScreenFx";
 import HandleInput, { StepSource } from "../input/HandleInput";
 import VaultScene from "../scenes/VaultScene";
 import { delay } from "../utils/async";
@@ -29,6 +32,7 @@ export default class GameStateMachine extends EventEmitter<{
     private vault: VaultScene,
     private input: HandleInput,
     private timer: Timer,
+    private fx: ScreenFx,
   ) {
     super();
 
@@ -57,7 +61,8 @@ export default class GameStateMachine extends EventEmitter<{
     this.lock.reset(code);
     this.vault.door.handle.normalize();
     this.timer.reset();
-    this.vault.keypad.setTime(0);
+    this.vault.keypad.reset(KEYPAD.text.initial);
+    this.vault.keypad.leds.clear();
     this.queue.length = 0;
     this.outcome = new Deferred<Outcome>();
     this.setState("Idle");
@@ -67,19 +72,38 @@ export default class GameStateMachine extends EventEmitter<{
   }
 
   private async win() {
-    const door = this.vault.door;
+    const { door, keypad } = this.vault;
 
     this.setState("Unlocking");
-    await door.swingOpen();
+    audio.play("clunk");
+    audio.play("chime");
+    await Promise.all([keypad.leds.allDone(), door.swingOpen()]);
     this.setState("Open");
     await delay(GAME.winHold);
     this.setState("Closing");
-    await door.swingClosed();
+    await Promise.all([door.swingClosed(), keypad.leds.reset()]);
+    audio.play("clunk");
   }
 
   private async fail() {
+    const { door, keypad, camera } = this.vault;
+
     this.setState("Failing");
-    await this.vault.door.handle.spinCrazy();
+    audio.play("error");
+    keypad.showError();
+
+    await gsap
+      .timeline()
+      .addLabel("hit")
+      .add(keypad.leds.flashError(), "hit")
+      .add(this.fx.vignette(), "hit")
+      .add(this.fx.shake(camera), "hit")
+      .addLabel("spin", HANDLE.spin.delay)
+      .add(door.handle.spinCrazy(), "spin")
+      .addLabel("reset", FAIL.resetAt)
+      .call(() => this.timer.reset(), [], "reset")
+      .add(keypad.rollTo(KEYPAD.text.initial), "reset")
+      .add(keypad.leds.reset(), "reset");
   }
 
   private onStep(dir: Direction, source: StepSource) {
@@ -100,16 +124,18 @@ export default class GameStateMachine extends EventEmitter<{
 
   private async consume(first: Direction) {
     let dir: Direction | undefined = first;
+    let chained = false;
 
     this.busy = true;
 
     while (dir) {
-      const tween = this.vault.door.handle.rotateStep(dir);
+      const tween = this.vault.door.handle.rotateStep(dir, chained);
       const step = this.apply(dir);
 
       await tween;
       if (this.finish(step)) break;
       dir = this.queue.shift();
+      chained = true;
     }
 
     this.busy = false;
@@ -127,7 +153,7 @@ export default class GameStateMachine extends EventEmitter<{
     this.emit("lock", step);
 
     if (step.result === "unlock" || step.result === "fail") {
-      if (step.result === "unlock") this.timer.stop();
+      this.timer.stop();
       this.input.disable();
       this.queue.length = 0;
     }

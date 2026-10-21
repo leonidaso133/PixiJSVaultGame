@@ -3,10 +3,13 @@ import { Container, Text } from "pixi.js";
 import { SceneUtils } from "../core/App";
 import { Layout } from "../core/Viewport";
 import { INTRO, LOADING } from "../config";
-import HandleInput from "../input/HandleInput";
+import ScreenFx from "../fx/ScreenFx";
+import HandleInput, { Hover } from "../input/HandleInput";
+import { Direction } from "../logic/Combination";
 import GameStateMachine from "../logic/GameStateMachine";
 import Timer from "../logic/Timer";
 import Backdrop from "../objects/Backdrop";
+import MuteButton from "../ui/MuteButton";
 import VaultScene from "./VaultScene";
 
 export default class Game extends Container {
@@ -15,6 +18,8 @@ export default class Game extends Container {
   private loadingText?: Text;
   private backdrop?: Backdrop;
   private vault?: VaultScene;
+  private fx?: ScreenFx;
+  private mute?: MuteButton;
   private fsm?: GameStateMachine;
   private readonly timer = new Timer();
 
@@ -42,17 +47,18 @@ export default class Game extends Container {
 
     this.backdrop = new Backdrop();
     this.vault = new VaultScene();
-    this.addChild(this.backdrop, this.vault);
+    this.fx = new ScreenFx();
+    this.mute = new MuteButton();
+    this.addChild(this.backdrop, this.vault, this.fx, this.mute);
 
     this.onResize(this.utils.viewport.layout);
 
-    this.fsm = new GameStateMachine(
-      this.vault,
-      new HandleInput(this.vault.door),
-      this.timer,
-    );
+    const input = new HandleInput(this.vault.door);
 
-    gsap.from([this.backdrop, this.vault], {
+    this.fsm = new GameStateMachine(this.vault, input, this.timer, this.fx);
+    this.wire(input, this.fsm, this.vault);
+
+    gsap.from([this.backdrop, this.vault, this.mute], {
       alpha: 0,
       duration: INTRO.duration,
       ease: INTRO.ease,
@@ -82,5 +88,20 @@ export default class Game extends Container {
     );
     this.backdrop?.applyLayout(layout);
     this.vault?.applyLayout(layout);
+    this.fx?.applyLayout(layout);
+    this.mute?.applyLayout(layout);
+  }
+
+  private wire(input: HandleInput, fsm: GameStateMachine, vault: VaultScene) {
+    const { arrows, keypad, door } = vault;
+
+    arrows.setHint(matchMedia("(hover: none)").matches);
+    input.on("interact", () => arrows.setHint(false));
+    input.on("hover", (hover: Hover) => {
+      arrows.show(hover?.side ?? null);
+      door.handle.setHover(hover?.onHandle ?? false);
+    });
+    input.on("step", (dir: Direction) => arrows.nudge(dir));
+    fsm.on("lock", (step) => keypad.leds.onLock(step));
   }
 }

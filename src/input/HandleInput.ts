@@ -1,9 +1,11 @@
 import { EventEmitter, FederatedPointerEvent } from "pixi.js";
-import { HANDLE, INPUT } from "../config";
+import { DOOR, DRAG, HANDLE, INPUT } from "../config";
 import { Direction } from "../logic/Combination";
 import Door from "../objects/Door";
 
 export type StepSource = "drag" | "tap" | "key";
+
+export type Hover = { side: Direction; onHandle: boolean } | null;
 
 interface Press {
   id: number;
@@ -19,11 +21,14 @@ interface Press {
 
 export default class HandleInput extends EventEmitter<{
   step: [Direction, StepSource];
+  hover: [Hover];
+  interact: [];
 }> {
   canDrag: () => boolean = () => true;
 
   private enabled = false;
   private press?: Press;
+  private hovered: Hover = null;
 
   constructor(private door: Door) {
     super();
@@ -34,6 +39,7 @@ export default class HandleInput extends EventEmitter<{
     door.on("globalpointermove", this.onMove, this);
     door.on("pointerup", this.onUp, this);
     door.on("pointerupoutside", this.onUp, this);
+    door.on("pointerout", this.onOut, this);
     window.addEventListener("keydown", this.onKey);
   }
 
@@ -51,6 +57,7 @@ export default class HandleInput extends EventEmitter<{
     this.door.cursor = "default";
     if (this.press?.dragging) this.door.handle.snapBack();
     this.press = undefined;
+    this.setHover(null);
   }
 
   destroy() {
@@ -59,6 +66,7 @@ export default class HandleInput extends EventEmitter<{
     this.door.off("globalpointermove", this.onMove, this);
     this.door.off("pointerup", this.onUp, this);
     this.door.off("pointerupoutside", this.onUp, this);
+    this.door.off("pointerout", this.onOut, this);
     this.removeAllListeners();
   }
 
@@ -78,10 +86,13 @@ export default class HandleInput extends EventEmitter<{
       base: 0,
       dragging: false,
     };
+    this.emit("interact");
   }
 
   private onMove(event: FederatedPointerEvent) {
     const press = this.press;
+
+    this.updateHover(event);
 
     if (!press || press.id !== event.pointerId || !press.onHandle) return;
 
@@ -101,10 +112,21 @@ export default class HandleInput extends EventEmitter<{
       press.base = this.door.handle.targetAngle;
       this.door.handle.beginDrag();
       this.door.cursor = "grabbing";
+      this.setHover(null);
     }
 
-    this.door.handle.dragTo(press.base + press.delta);
     this.emitCrossings(press);
+
+    if (this.press !== press) return;
+
+    const notch = press.emitted * HANDLE.stepAngle;
+    const offset = press.delta - notch;
+    const lag =
+      Math.sign(offset) *
+      DRAG.maxLag *
+      (1 - Math.exp(-Math.abs(offset) / DRAG.softness));
+
+    this.door.handle.dragTo(press.base + notch + lag);
   }
 
   private emitCrossings(press: Press) {
@@ -115,9 +137,11 @@ export default class HandleInput extends EventEmitter<{
 
       if (offset >= step) {
         press.emitted++;
+        this.door.handle.snapThrough();
         this.emit("step", "CW", "drag");
       } else if (offset <= -step) {
         press.emitted--;
+        this.door.handle.snapThrough();
         this.emit("step", "CCW", "drag");
       } else return;
     }
@@ -129,7 +153,7 @@ export default class HandleInput extends EventEmitter<{
     if (!press || press.id !== event.pointerId) return;
 
     this.press = undefined;
-    this.door.cursor = "pointer";
+    this.door.cursor = press.onHandle ? "grab" : "pointer";
 
     if (press.dragging) {
       this.door.handle.snapBack();
@@ -139,6 +163,10 @@ export default class HandleInput extends EventEmitter<{
     if (performance.now() - press.time <= INPUT.tapMaxMs) {
       this.emit("step", press.side, "tap");
     }
+  }
+
+  private onOut() {
+    if (!this.press) this.setHover(null);
   }
 
   private onKey = (event: KeyboardEvent) => {
@@ -151,8 +179,46 @@ export default class HandleInput extends EventEmitter<{
     event.preventDefault();
     if (!this.enabled || event.repeat || this.isDragging) return;
 
+    this.emit("interact");
     this.emit("step", dir, "key");
   };
+
+  private updateHover(event: FederatedPointerEvent) {
+    if (this.press && !this.press.dragging) return;
+
+    let hover: Hover = null;
+
+    if (this.enabled && !this.press && event.pointerType !== "touch") {
+      const local = event.getLocalPosition(this.door);
+      const distance = Math.hypot(local.x, local.y);
+
+      if (distance <= DOOR.hitRadius) {
+        hover = {
+          side: local.x < 0 ? "CCW" : "CW",
+          onHandle: distance <= HANDLE.hitRadius,
+        };
+      }
+    }
+
+    this.setHover(hover);
+  }
+
+  private setHover(hover: Hover) {
+    const current = this.hovered;
+
+    if (
+      current?.side === hover?.side &&
+      current?.onHandle === hover?.onHandle
+    ) {
+      return;
+    }
+
+    this.hovered = hover;
+    if (this.enabled && !this.press) {
+      this.door.cursor = hover?.onHandle ? "grab" : "pointer";
+    }
+    this.emit("hover", hover);
+  }
 
   private pointerAngle(event: FederatedPointerEvent) {
     const hub = this.door.toGlobal({ x: 0, y: 0 });

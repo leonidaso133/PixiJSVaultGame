@@ -1,5 +1,6 @@
 import gsap from "gsap";
 import { Assets, Container, Graphics, Sprite, Texture } from "pixi.js";
+import { audio } from "../audio/AudioManager";
 import { DOOR, HANDLE, KEYPAD, SAFE_RECT, SHADOW } from "../config";
 import GameStateMachine from "../logic/GameStateMachine";
 import VaultScene from "../scenes/VaultScene";
@@ -63,6 +64,7 @@ export default class DebugOverlay extends Container {
         overlay: this,
         fsm: this.fsm,
         lock: this.fsm.lock,
+        audio,
       },
     });
   }
