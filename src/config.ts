@@ -6,12 +6,19 @@ export const DOOR = {
   position: { x: 1198, y: 513.5 },
   closed: { pivot: { x: 380, y: 387.5 } },
   open: { offset: { x: 357, y: -382.5 } },
+  hitRadius: 373,
+  anim: { duration: 0.4, ease: "power2.inOut" },
 } as const;
 
 export const HANDLE = {
   offset: { x: 0, y: 0 },
   pivot: { x: 175, y: 198.5 },
   stepAngle: 60,
+  hitRadius: 175,
+  step: { duration: 0.35, ease: "back.out(1.6)" },
+  follow: { duration: 0.15, ease: "power3" },
+  snap: { duration: 0.25, ease: "power2.out" },
+  spin: { minTurns: 3, maxTurns: 5, duration: 1.6, ease: "power4.out" },
 } as const;
 
 export const SHADOW = {
@@ -31,6 +38,15 @@ export const KEYPAD = {
     initial: "00:00.00",
   },
 } as const;
+
+export const INPUT = {
+  dragDeadzone: 8,
+  tapMaxMs: 400,
+  bufferSize: 2,
+  keys: { CCW: ["ArrowLeft", "a", "A"], CW: ["ArrowRight", "d", "D"] },
+} as const;
+
+export const GAME = { pairs: 3, minValue: 1, maxValue: 9, winHold: 5 } as const;
 
 export const BACKDROP = {
   band: 120,

@@ -42,7 +42,7 @@ export default class App extends Application {
       this.viewport.update(width, height),
     );
 
-    this.ticker.add((ticker) => this.game.update(ticker.deltaTime));
+    this.ticker.add((ticker) => this.game.update(ticker.deltaMS / 1000));
 
     await this.game.load();
     await this.game.start();

@@ -1,5 +1,6 @@
 import { Container, Graphics, Text } from "pixi.js";
 import { KEYPAD } from "../config";
+import Timer from "../logic/Timer";
 
 export default class KeypadDisplay extends Container {
   label = "KeypadDisplay";
@@ -47,6 +48,10 @@ export default class KeypadDisplay extends Container {
   }
 
   setText(value: string) {
-    this.text.text = value;
+    if (this.text.text !== value) this.text.text = value;
+  }
+
+  setTime(seconds: number) {
+    this.setText(Timer.format(seconds));
   }
 }

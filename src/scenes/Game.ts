@@ -3,6 +3,9 @@ import { Container, Text } from "pixi.js";
 import { SceneUtils } from "../core/App";
 import { Layout } from "../core/Viewport";
 import { INTRO, LOADING } from "../config";
+import HandleInput from "../input/HandleInput";
+import GameStateMachine from "../logic/GameStateMachine";
+import Timer from "../logic/Timer";
 import Backdrop from "../objects/Backdrop";
 import VaultScene from "./VaultScene";
 
@@ -12,6 +15,8 @@ export default class Game extends Container {
   private loadingText?: Text;
   private backdrop?: Backdrop;
   private vault?: VaultScene;
+  private fsm?: GameStateMachine;
+  private readonly timer = new Timer();
 
   constructor(protected utils: SceneUtils) {
     super();
@@ -41,6 +46,12 @@ export default class Game extends Container {
 
     this.onResize(this.utils.viewport.layout);
 
+    this.fsm = new GameStateMachine(
+      this.vault,
+      new HandleInput(this.vault.door),
+      this.timer,
+    );
+
     gsap.from([this.backdrop, this.vault], {
       alpha: 0,
       duration: INTRO.duration,
@@ -52,12 +63,17 @@ export default class Game extends Container {
       new URLSearchParams(location.search).has("debug")
     ) {
       const { default: DebugOverlay } = await import("../debug/DebugOverlay");
-      const overlay = new DebugOverlay(this.vault);
+      const overlay = new DebugOverlay(this.vault, this.fsm);
       await overlay.load();
     }
+
+    void this.fsm.run();
   }
 
-  update(_delta: number) {}
+  update(deltaSeconds: number) {
+    this.timer.update(deltaSeconds);
+    this.vault?.keypad.setTime(this.timer.elapsed);
+  }
 
   onResize(layout: Layout) {
     this.loadingText?.position.set(

@@ -1,6 +1,7 @@
 import gsap from "gsap";
 import { Assets, Container, Graphics, Sprite, Texture } from "pixi.js";
 import { DOOR, HANDLE, KEYPAD, SAFE_RECT, SHADOW } from "../config";
+import GameStateMachine from "../logic/GameStateMachine";
 import VaultScene from "../scenes/VaultScene";
 import previewStartUrl from "../../dreamshot challenge/previews/preview start.jpg?url";
 import previewWinUrl from "../../dreamshot challenge/previews/preview win.jpg?url";
@@ -11,7 +12,10 @@ export default class DebugOverlay extends Container {
   private preview = new Sprite();
   private textures: Record<string, Texture> = {};
 
-  constructor(private vault: VaultScene) {
+  constructor(
+    private vault: VaultScene,
+    private fsm: GameStateMachine,
+  ) {
     super();
 
     this.preview.alpha = 0.5;
@@ -57,6 +61,8 @@ export default class DebugOverlay extends Container {
         door: this.vault.door,
         handle: this.vault.door.handle,
         overlay: this,
+        fsm: this.fsm,
+        lock: this.fsm.lock,
       },
     });
   }

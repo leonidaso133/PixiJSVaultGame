@@ -23,7 +23,9 @@ export default class Timer {
     this.elapsedSeconds = 0;
   }
 
-  update(_deltaSeconds: number) {}
+  update(deltaSeconds: number) {
+    if (this.running) this.elapsedSeconds += deltaSeconds;
+  }
 
   static format(seconds: number) {
     const total = Math.floor(seconds * 100);
