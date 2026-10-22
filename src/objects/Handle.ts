@@ -263,6 +263,31 @@ export default class Handle extends Container {
     return timeline;
   }
 
+  release() {
+    const { angle, duration, ease, scale, lift } = HANDLE.release;
+    const timeline = gsap.timeline();
+
+    return timeline
+      .call(() => this.takeOver(timeline))
+      .to(this, { angle: () => this.targetAngle + angle, duration, ease })
+      .to(this.scale, { x: scale, y: scale, duration, ease }, 0)
+      .to(this, { lift, duration, ease }, 0);
+  }
+
+  returnHome() {
+    const { steps, duration, ease } = HANDLE.home;
+    const timeline = gsap.timeline();
+
+    return timeline
+      .call(() => {
+        this.takeOver(timeline);
+        this.steps += steps;
+      })
+      .to(this, { angle: () => this.targetAngle, duration, ease })
+      .to(this.scale, { x: 1, y: 1, duration, ease: "power2.out" }, 0)
+      .to(this, { lift: 0, duration, ease: "power2.out" }, 0);
+  }
+
   normalize() {
     const stepsPerTurn = 360 / HANDLE.stepAngle;
 
@@ -284,6 +309,12 @@ export default class Handle extends Container {
 
     this.wheel.angle = angle;
     this.shadow.angle = angle;
+  }
+
+  private takeOver(timeline: gsap.core.Timeline) {
+    this.stop();
+    this.setHover(false);
+    this.tween = timeline;
   }
 
   private stop() {

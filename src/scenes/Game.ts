@@ -46,7 +46,7 @@ export default class Game extends Container {
     this.loadingText = undefined;
 
     this.backdrop = new Backdrop();
-    this.vault = new VaultScene();
+    this.vault = new VaultScene(this.utils.renderer);
     this.fx = new ScreenFx();
     this.mute = new MuteButton();
     this.addChild(this.backdrop, this.vault, this.fx, this.mute);

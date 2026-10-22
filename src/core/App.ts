@@ -1,5 +1,5 @@
 import gsap from "gsap";
-import { Application } from "pixi.js";
+import { Application, Renderer } from "pixi.js";
 import AssetLoader from "./AssetLoader";
 import Viewport from "./Viewport";
 import Game from "../scenes/Game";
@@ -8,6 +8,7 @@ import { TICKER } from "../config";
 export interface SceneUtils {
   assetLoader: AssetLoader;
   viewport: Viewport;
+  renderer: Renderer;
 }
 
 export default class App extends Application {
@@ -34,6 +35,7 @@ export default class App extends Application {
     this.game = new Game({
       assetLoader: new AssetLoader(),
       viewport: this.viewport,
+      renderer: this.renderer,
     });
     this.stage.addChild(this.game);
 

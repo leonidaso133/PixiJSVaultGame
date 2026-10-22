@@ -1,7 +1,7 @@
 import gsap from "gsap";
 import { Assets, Container, Graphics, Sprite, Texture } from "pixi.js";
 import { audio } from "../audio/AudioManager";
-import { DOOR, HANDLE, KEYPAD, SAFE_RECT, SHADOW } from "../config";
+import { DOOR, HANDLE, KEYPAD, SAFE_RECT, SHADOW, TREASURE } from "../config";
 import GameStateMachine from "../logic/GameStateMachine";
 import VaultScene from "../scenes/VaultScene";
 import previewStartUrl from "../../dreamshot challenge/previews/preview start.jpg?url";
@@ -12,6 +12,7 @@ export default class DebugOverlay extends Container {
 
   private preview = new Sprite();
   private textures: Record<string, Texture> = {};
+  private scrubbing = false;
 
   constructor(
     private vault: VaultScene,
@@ -31,7 +32,9 @@ export default class DebugOverlay extends Container {
         KEYPAD.glass.width,
         KEYPAD.glass.height,
       )
-      .stroke({ width: 1, color: 0xff00ff });
+      .stroke({ width: 1, color: 0xff00ff })
+      .circle(TREASURE.center.x, TREASURE.center.y, TREASURE.radius)
+      .stroke({ width: 1, color: 0xffcc00 });
 
     this.cross(guides, DOOR.position.x, DOOR.position.y, 0xff3333);
     this.cross(
@@ -52,7 +55,13 @@ export default class DebugOverlay extends Container {
 
     window.addEventListener("keydown", (event) => {
       if (event.key === "r") this.spin();
+      else if (event.key === "3") this.scrub();
       else this.show(event.key);
+    });
+    window.addEventListener("pointermove", (event) => {
+      if (this.scrubbing) {
+        this.vault.door.openness = event.clientX / window.innerWidth;
+      }
     });
 
     Object.assign(globalThis, {
@@ -67,6 +76,16 @@ export default class DebugOverlay extends Container {
         audio,
       },
     });
+  }
+
+  private scrub() {
+    const { door } = this.vault;
+
+    this.scrubbing = !this.scrubbing;
+    door.face.visible = !this.scrubbing;
+    door.swing.visible = this.scrubbing;
+    if (this.scrubbing) door.swing.bake(door.face);
+    door.openness = 0;
   }
 
   private show(key: string) {

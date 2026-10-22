@@ -7,7 +7,48 @@ export const DOOR = {
   closed: { pivot: { x: 380, y: 387.5 } },
   open: { offset: { x: 357, y: -382.5 } },
   hitRadius: 373,
-  anim: { duration: 0.4, ease: "power2.inOut" },
+  jolt: { x: 4, out: 0.05, back: 0.25, ease: "elastic.out(1, 0.4)" },
+} as const;
+
+export const SWING = {
+  hinge: 410,
+  focal: 5000,
+  angle: 125,
+  thickness: 95,
+  vertices: 16,
+  resolution: 1,
+  flip: 0.05,
+  shade: 0.55,
+  morph: 0.55,
+  rim: {
+    segments: 48,
+    radius: { x: 380, y: 389 },
+    color: 0x3a4870,
+    edge: { color: 0x8fa3d6, width: 2, alpha: 0.8 },
+  },
+  target: { x: 357, y: -382.5, width: 582, height: 772 },
+  open: { duration: 1.1, ease: "power3.inOut" },
+  close: { duration: 0.9, ease: "power2.in" },
+  crossfade: 0.12,
+  hingePivot: { x: 40, y: 386 },
+  settle: { scale: 0.985, out: 0.12, back: 0.5, ease: "back.out(2)" },
+  shadow: { x: 760, y: 40, width: 760, height: 900, alpha: 0.5, size: 256 },
+} as const;
+
+export const TREASURE = {
+  center: { x: 1198, y: 513.5 },
+  radius: 292,
+  bloom: {
+    threshold: 0.6,
+    blur: 8,
+    quality: 4,
+    padding: 48,
+    peak: 2.5,
+    rest: 0.35,
+    in: 0.4,
+    out: 1.2,
+    dim: 0.6,
+  },
 } as const;
 
 export const EASES = {
@@ -43,6 +84,14 @@ export const HANDLE = {
     settle: { duration: 0.5, ease: "elastic.out(1, 0.35)" },
   },
   blur: { kernelSize: 15, padding: 24, perDegree: 1.6, max: 70 },
+  release: {
+    angle: 90,
+    duration: 0.45,
+    ease: "power2.out",
+    scale: 1.06,
+    lift: 2,
+  },
+  home: { steps: 2, duration: 0.7, ease: "back.out(1.4)" },
 } as const;
 
 export const SHADOW = {
@@ -67,6 +116,11 @@ export const KEYPAD = {
   },
   error: { text: "ERROR", fill: 0xff4d4d, glow: 0xff1a1a, blinks: 4 },
   roll: { duration: 0.12, stagger: 0.035, ease: "power2.in" },
+  celebrate: {
+    flash: { fill: 0xffffff, glow: 0xffffff, times: 2, duration: 0.09 },
+    fill: 0xffd34a,
+    glow: 0xffa800,
+  },
 } as const;
 
 export const LEDS = {
@@ -86,6 +140,7 @@ export const LEDS = {
   glow: { distance: 10, peak: 2, rest: 1, quality: 0.3 },
   flash: { times: 3, duration: 0.12 },
   reset: { duration: 0.2, stagger: 0.08 },
+  chase: { stagger: 0.08, gap: 0.1, flash: { times: 2, duration: 0.1 } },
 } as const;
 
 export const ARROWS = {
@@ -104,6 +159,9 @@ export const ARROWS = {
 
 export const FX = {
   shake: { strength: 12, duration: 0.4 },
+  unlockShake: { strength: 5, duration: 0.25 },
+  slamShake: { strength: 8, duration: 0.35 },
+  flash: { color: 0xffc35a, peak: 0.1, in: 0.15, out: 0.45 },
   vignette: {
     color: "#ff1a1a",
     peak: 0.45,
@@ -113,6 +171,149 @@ export const FX = {
     size: 512,
   },
 } as const;
+
+export const LIGHT = {
+  rays: {
+    size: 1700,
+    count: 18,
+    color: "255, 214, 140",
+    texture: 512,
+    peak: 0.5,
+    rest: 0.15,
+    period: 40,
+    grow: 1.15,
+  },
+  glow: {
+    size: 1100,
+    color: "255, 195, 90",
+    texture: 256,
+    peak: 0.7,
+    rest: 0.15,
+  },
+  in: 0.35,
+  settle: 1.2,
+  dim: 0.6,
+} as const;
+
+export const GLITTER = {
+  count: 14,
+  jitter: 28,
+  scale: { min: 0.4, max: 0.9 },
+  spin: { min: 45, max: 90 },
+  duration: { min: 0.6, max: 1.2 },
+  startDelay: 1.2,
+  fade: 0.4,
+  hotspots: [
+    [1216, 542],
+    [1174, 446],
+    [1058, 732],
+    [1368, 396],
+    [1320, 720],
+    [1044, 648],
+    [1050, 630],
+    [1044, 450],
+    [1416, 510],
+    [1140, 600],
+    [1392, 666],
+    [978, 480],
+    [1008, 384],
+    [1200, 258],
+  ],
+  sweep: {
+    width: 220,
+    height: 900,
+    texture: 256,
+    angle: 25,
+    alpha: 0.55,
+    travel: 460,
+    duration: 0.7,
+    period: 1.8,
+    ease: "power1.inOut",
+  },
+} as const;
+
+export const PARTICLES = {
+  count: 40,
+  spread: 140,
+  velocity: { min: 500, max: 1050 },
+  angle: { min: -160, max: -20 },
+  gravity: 1500,
+  duration: { min: 1.2, max: 1.9 },
+  scale: { min: 0.4, max: 0.85 },
+  spin: 720,
+  texture: 48,
+  sparkScale: 0.18,
+  gems: [0x5ad1ff, 0xff4d6d, 0x59ff9a],
+  dust: {
+    count: 22,
+    radius: 378,
+    velocity: { min: 50, max: 150 },
+    gravity: -40,
+    duration: { min: 0.9, max: 1.4 },
+    scale: { from: 0.8, to: 2.4 },
+    alpha: 0.6,
+    tint: 0xa7aec0,
+    texture: 64,
+  },
+} as const;
+
+export const BANNER = {
+  y: 690,
+  title: "VAULT OPENED",
+  font: { fontFamily: "Orbitron", fontWeight: "900", fontSize: 48 },
+  letterSpacing: 4,
+  titleY: -18,
+  colors: ["#fff6c8", "#ffd34a", "#c98a12"],
+  stroke: { color: 0x3b2300, width: 3 },
+  shadow: { color: 0x000000, blur: 6, distance: 3, alpha: 0.6 },
+  glow: {
+    color: 0xffa800,
+    distance: 14,
+    strength: 1.6,
+    quality: 0.3,
+    delay: 0.5,
+  },
+  resolution: 2,
+  time: {
+    fontFamily: "Share Tech Mono",
+    fontSize: 30,
+    fill: 0xfff1c2,
+    glow: 0xffa800,
+    y: 40,
+    count: 0.6,
+    delay: 0.3,
+  },
+  ribbon: {
+    width: 700,
+    height: 140,
+    alpha: 0.85,
+    fade: 0.18,
+    color: "5,8,26",
+    line: { color: "255,201,74", width: 2, inset: 6 },
+  },
+  letters: { stagger: 0.04, duration: 0.5, ease: "back.out(2)", rise: 14 },
+  show: { duration: 0.35, ease: "power2.out" },
+  hide: { duration: 0.35, ease: "power2.in", drop: 16 },
+} as const;
+
+export const PUSH = {
+  scale: 1.04,
+  in: { duration: 2, ease: "sine.inOut" },
+  out: { duration: 1.1, ease: "sine.inOut" },
+  keep: { x: 694, y: 126, width: 1446, height: 779 },
+} as const;
+
+export const WIN = {
+  unlock: 0.05,
+  release: 0.35,
+  clunk: 0.6,
+  swing: 0.75,
+  burst: 0.9,
+  reveal: 1.7,
+  open: 1.85,
+} as const;
+
+export const CLOSE = { swing: 0.5, reset: 0.15 } as const;
 
 export const FAIL = { resetAt: 2.05, settleBlur: 0.3 } as const;
 

@@ -18,6 +18,7 @@ export default class KeypadDisplay extends Container {
 
   private glass: Graphics;
   private clip: Graphics;
+  private digits = new Container({ label: "LcdDigits" });
   private cells: Text[] = [];
   private value: string = KEYPAD.text.initial;
   private held = false;
@@ -46,14 +47,13 @@ export default class KeypadDisplay extends Container {
         new TextStyle({ fontFamily, fontSize }),
       ).width / initial.length;
     const startX = width / 2 - (cellWidth * initial.length) / 2;
-    const digits = new Container({ label: "LcdDigits" });
 
     for (let i = 0; i < initial.length; i++) {
       const cell = this.createText(initial[i], fill, glow);
 
       cell.position.set(startX + cellWidth * (i + 0.5), KEYPAD.text.y);
       this.cells.push(cell);
-      digits.addChild(cell);
+      this.digits.addChild(cell);
     }
 
     this.message = this.createText(
@@ -66,7 +66,7 @@ export default class KeypadDisplay extends Container {
 
     this.leds = new ProgressLeds(width);
 
-    this.addChild(this.glass, digits, this.message, this.leds, this.clip);
+    this.addChild(this.glass, this.digits, this.message, this.leds, this.clip);
     this.mask = this.clip;
   }
 
@@ -117,6 +117,7 @@ export default class KeypadDisplay extends Container {
     this.roll?.kill();
     this.roll = roll;
     roll.call(() => {
+      this.paint(KEYPAD.text.fill, KEYPAD.text.glow);
       this.blink?.kill();
       this.message.visible = false;
       this.cells.forEach((cell) => (cell.visible = true));
@@ -134,10 +135,37 @@ export default class KeypadDisplay extends Container {
     return roll;
   }
 
+  celebrate() {
+    const { flash, fill, glow } = KEYPAD.celebrate;
+
+    this.roll?.kill();
+    this.roll = gsap
+      .timeline()
+      .call(() => this.paint(flash.fill, flash.glow))
+      .fromTo(
+        this.digits,
+        { alpha: 1 },
+        {
+          alpha: 0.15,
+          duration: flash.duration,
+          ease: "steps(1)",
+          yoyo: true,
+          repeat: flash.times * 2 - 1,
+          immediateRender: false,
+        },
+      )
+      .call(() => this.paint(fill, glow))
+      .set(this.digits, { alpha: 1 });
+
+    return this.roll;
+  }
+
   reset(value: string) {
     this.blink?.kill();
     this.roll?.kill();
     this.held = false;
+    this.digits.alpha = 1;
+    this.paint(KEYPAD.text.fill, KEYPAD.text.glow);
     this.message.visible = false;
     this.cells.forEach((cell) => {
       cell.visible = true;
@@ -155,6 +183,15 @@ export default class KeypadDisplay extends Container {
     });
   }
 
+  private paint(fill: number, glow: number) {
+    this.cells.forEach((cell) => {
+      if (cell.style.fill === fill) return;
+
+      cell.style.fill = fill;
+      cell.style.dropShadow = KeypadDisplay.glow(glow);
+    });
+  }
+
   private createText(text: string, fill: number, glow: number) {
     const { fontFamily, fontSize, resolution } = KEYPAD.text;
     const label = new Text({
@@ -164,12 +201,16 @@ export default class KeypadDisplay extends Container {
         fontFamily,
         fontSize,
         fill,
-        dropShadow: { color: glow, blur: 6, distance: 0, alpha: 0.9 },
+        dropShadow: KeypadDisplay.glow(glow),
       },
     });
 
     label.anchor.set(0.5);
 
     return label;
+  }
+
+  private static glow(color: number) {
+    return { color, blur: 6, distance: 0, alpha: 0.9, angle: 0 };
   }
 }

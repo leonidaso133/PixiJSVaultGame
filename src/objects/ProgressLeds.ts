@@ -62,15 +62,35 @@ export default class ProgressLeds extends Container {
   }
 
   allDone() {
+    const { stagger, gap, flash } = LEDS.chase;
     const timeline = gsap.timeline();
 
     this.leds.forEach((led, i) => {
-      if (led.state !== "done") {
-        timeline.call(() => this.set(i, "done"), [], i * LEDS.reset.stagger);
-      }
+      timeline.call(
+        () => {
+          led.state = "done";
+          led.tween?.kill();
+          led.body.alpha = 1;
+          this.lightUp(led, i);
+        },
+        [],
+        i * stagger,
+      );
     });
 
-    return timeline;
+    return timeline.fromTo(
+      this.leds.map((led) => led.body),
+      { alpha: 1 },
+      {
+        alpha: 0.25,
+        duration: flash.duration,
+        ease: "steps(1)",
+        yoyo: true,
+        repeat: flash.times * 2 - 1,
+        immediateRender: false,
+      },
+      this.leds.length * stagger + gap,
+    );
   }
 
   flashError() {

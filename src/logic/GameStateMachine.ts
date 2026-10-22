@@ -1,7 +1,18 @@
 import gsap from "gsap";
 import { EventEmitter } from "pixi.js";
 import { audio } from "../audio/AudioManager";
-import { FAIL, GAME, HANDLE, INPUT, KEYPAD } from "../config";
+import {
+  CLOSE,
+  FAIL,
+  FX,
+  GAME,
+  HANDLE,
+  INPUT,
+  KEYPAD,
+  PUSH,
+  TREASURE,
+  WIN,
+} from "../config";
 import ScreenFx from "../fx/ScreenFx";
 import HandleInput, { StepSource } from "../input/HandleInput";
 import VaultScene from "../scenes/VaultScene";
@@ -27,6 +38,7 @@ export default class GameStateMachine extends EventEmitter<{
   private queue: Direction[] = [];
   private busy = false;
   private outcome?: Deferred<Outcome>;
+  private sequence?: gsap.core.Timeline;
 
   constructor(
     private vault: VaultScene,
@@ -72,17 +84,77 @@ export default class GameStateMachine extends EventEmitter<{
   }
 
   private async win() {
-    const { door, keypad } = this.vault;
+    const { door, keypad, camera, treasure, light, particles, banner } =
+      this.vault;
+    const { x, y } = TREASURE.center;
+    const seconds = this.timer.elapsed;
+    const opened = new Deferred<void>();
 
     this.setState("Unlocking");
-    audio.play("clunk");
-    audio.play("chime");
-    await Promise.all([keypad.leds.allDone(), door.swingOpen()]);
+    this.sequence?.kill();
+    this.sequence = gsap
+      .timeline()
+      .addLabel("unlock", WIN.unlock)
+      .add(keypad.leds.allDone(), "unlock")
+      .add(keypad.celebrate(), "unlock")
+      .addLabel("release", WIN.release)
+      .add(door.handle.release(), "release")
+      .addLabel("clunk", WIN.clunk)
+      .call(() => audio.play("clunk"), [], "clunk")
+      .add(this.fx.shake(camera, FX.unlockShake), "clunk")
+      .add(door.jolt(), "clunk")
+      .addLabel("swing", WIN.swing)
+      .add(door.swingOpen(), "swing")
+      .addLabel("burst", WIN.burst)
+      .add(treasure.reveal(), "burst")
+      .add(light.burst(), "burst")
+      .add(this.fx.flash(), "burst")
+      .add(this.vault.pushTo(1, PUSH.in), "burst")
+      .addLabel("reveal", WIN.reveal)
+      .call(
+        () => {
+          audio.play("chime");
+          treasure.shine();
+        },
+        [],
+        "reveal",
+      )
+      .add(particles.burst(x, y), "reveal")
+      .add(banner.show(seconds), "reveal")
+      .addLabel("open", WIN.open)
+      .call(() => opened.resolve(), [], "open");
+
+    await opened.promise;
     this.setState("Open");
     await delay(GAME.winHold);
+    await this.close();
+  }
+
+  private async close() {
+    const { door, keypad, camera, treasure, light, particles, banner } =
+      this.vault;
+    const { x, y } = TREASURE.center;
+
     this.setState("Closing");
-    await Promise.all([door.swingClosed(), keypad.leds.reset()]);
-    audio.play("clunk");
+    this.sequence?.kill();
+    this.sequence = gsap
+      .timeline()
+      .add(banner.hide(), 0)
+      .add(treasure.conceal(), 0)
+      .add(light.dim(), 0)
+      .add(this.vault.pushTo(0, PUSH.out), 0)
+      .add(door.swingClosed(), CLOSE.swing)
+      .addLabel("slam", ">")
+      .call(() => audio.play("clunk"), [], "slam")
+      .add(this.fx.shake(camera, FX.slamShake), "slam")
+      .add(particles.dust(x, y), "slam")
+      .add(door.handle.returnHome(), "slam")
+      .addLabel("reset", `slam+=${CLOSE.reset}`)
+      .call(() => this.timer.reset(), [], "reset")
+      .add(keypad.leds.reset(), "reset")
+      .add(keypad.rollTo(KEYPAD.text.initial), "reset");
+
+    await this.sequence;
   }
 
   private async fail() {
