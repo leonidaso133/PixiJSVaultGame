@@ -1,8 +1,9 @@
 import gsap from "gsap";
 import { Container, Graphics } from "pixi.js";
 import { GlowFilter } from "pixi-filters";
-import { ARROWS, DOOR } from "../config";
+import { AMBIENCE, ARROWS, DOOR } from "../config";
 import { Direction } from "../logic/Combination";
+import { reducedMotion } from "../utils/motion";
 
 interface Arrow {
   root: Container;
@@ -59,6 +60,49 @@ export default class DirectionArrows extends Container {
         repeat: 1,
       },
     );
+  }
+
+  tease() {
+    if (this.shown) return gsap.timeline();
+
+    const { alpha, hold, angle, ease } = AMBIENCE.nudge.arrows;
+    const { fade } = ARROWS;
+    const timeline = gsap.timeline({
+      onComplete: () => this.refresh(),
+      onInterrupt: () =>
+        Object.values(this.arrows).forEach((arrow) => (arrow.root.angle = 0)),
+    });
+
+    (Object.keys(this.arrows) as Direction[]).forEach((dir) => {
+      const arrow = this.arrows[dir];
+      const sign = dir === "CW" ? 1 : -1;
+
+      arrow.fade?.kill();
+      arrow.nudge?.kill();
+      arrow.root.filters = [arrow.glow];
+      arrow.fade = timeline;
+      timeline.to(arrow.root, { alpha, ...fade }, 0).fromTo(
+        arrow.root,
+        { angle: 0 },
+        {
+          keyframes: [
+            {
+              angle: sign * angle,
+              duration: fade.duration,
+              ease: "power2.out",
+            },
+            {
+              angle: 0,
+              duration: hold * 2,
+              ease: reducedMotion() ? "sine.inOut" : ease,
+            },
+          ],
+        },
+        0,
+      );
+    });
+
+    return timeline;
   }
 
   private refresh() {

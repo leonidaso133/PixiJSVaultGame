@@ -1,26 +1,29 @@
-import gsap from "gsap";
-import { Container, Text } from "pixi.js";
+import { Container } from "pixi.js";
 import { SceneUtils } from "../core/App";
 import { Layout } from "../core/Viewport";
-import { INTRO, LOADING } from "../config";
+import Ambience from "../fx/Ambience";
 import ScreenFx from "../fx/ScreenFx";
+import GpuWarmup from "../fx/GpuWarmup";
 import HandleInput, { Hover } from "../input/HandleInput";
 import { Direction } from "../logic/Combination";
-import GameStateMachine from "../logic/GameStateMachine";
+import GameStateMachine, { GameState } from "../logic/GameStateMachine";
 import Timer from "../logic/Timer";
 import Backdrop from "../objects/Backdrop";
+import Loader from "../ui/Loader";
 import MuteButton from "../ui/MuteButton";
+import Intro from "./Intro";
 import VaultScene from "./VaultScene";
 
 export default class Game extends Container {
   label = "Game";
 
-  private loadingText?: Text;
+  private loader?: Loader;
   private backdrop?: Backdrop;
   private vault?: VaultScene;
   private fx?: ScreenFx;
   private mute?: MuteButton;
   private fsm?: GameStateMachine;
+  private ambience?: Ambience;
   private readonly timer = new Timer();
 
   constructor(protected utils: SceneUtils) {
@@ -28,27 +31,25 @@ export default class Game extends Container {
   }
 
   async load() {
-    this.loadingText = new Text({
-      text: "Loading...",
-      style: LOADING,
-      resolution: 2,
-    });
-    this.loadingText.anchor.set(0.5);
-    this.addChild(this.loadingText);
+    this.loader = new Loader();
+    this.addChild(this.loader);
     this.onResize(this.utils.viewport.layout);
 
-    await this.utils.assetLoader.loadAssets();
+    await this.utils.assetLoader.loadAssets((progress) =>
+      this.loader?.progress(progress),
+    );
   }
 
   async start() {
-    this.removeChildren();
-    this.loadingText?.destroy();
-    this.loadingText = undefined;
+    await this.loader?.finish();
+    this.loader?.destroy();
+    this.loader = undefined;
 
     this.backdrop = new Backdrop();
     this.vault = new VaultScene(this.utils.renderer);
     this.fx = new ScreenFx();
     this.mute = new MuteButton();
+    this.ambience = new Ambience(this.vault);
     this.addChild(this.backdrop, this.vault, this.fx, this.mute);
 
     this.onResize(this.utils.viewport.layout);
@@ -56,13 +57,7 @@ export default class Game extends Container {
     const input = new HandleInput(this.vault.door);
 
     this.fsm = new GameStateMachine(this.vault, input, this.timer, this.fx);
-    this.wire(input, this.fsm, this.vault);
-
-    gsap.from([this.backdrop, this.vault, this.mute], {
-      alpha: 0,
-      duration: INTRO.duration,
-      ease: INTRO.ease,
-    });
+    this.wire(input, this.fsm, this.vault, this.ambience);
 
     if (
       import.meta.env.DEV &&
@@ -73,6 +68,16 @@ export default class Game extends Container {
       await overlay.load();
     }
 
+    const intro = new Intro(this.vault, this.ambience.lamps, [
+      this.backdrop,
+      this.mute,
+    ]);
+
+    intro.setup();
+    await GpuWarmup.run(this.utils.renderer, this, this.vault.door);
+    await intro.play();
+
+    this.ambience.start();
     void this.fsm.run();
   }
 
@@ -82,26 +87,44 @@ export default class Game extends Container {
   }
 
   onResize(layout: Layout) {
-    this.loadingText?.position.set(
-      layout.screenWidth / 2,
-      layout.screenHeight / 2,
-    );
+    this.loader?.applyLayout(layout);
     this.backdrop?.applyLayout(layout);
     this.vault?.applyLayout(layout);
     this.fx?.applyLayout(layout);
     this.mute?.applyLayout(layout);
   }
 
-  private wire(input: HandleInput, fsm: GameStateMachine, vault: VaultScene) {
+  private wire(
+    input: HandleInput,
+    fsm: GameStateMachine,
+    vault: VaultScene,
+    ambience: Ambience,
+  ) {
     const { arrows, keypad, door } = vault;
 
     arrows.setHint(matchMedia("(hover: none)").matches);
-    input.on("interact", () => arrows.setHint(false));
+    input.on("interact", () => {
+      arrows.setHint(false);
+      if (fsm.state === "Idle") ambience.arm();
+    });
     input.on("hover", (hover: Hover) => {
       arrows.show(hover?.side ?? null);
       door.handle.setHover(hover?.onHandle ?? false);
     });
     input.on("step", (dir: Direction) => arrows.nudge(dir));
     fsm.on("lock", (step) => keypad.leds.onLock(step));
+    fsm.on("state", (state: GameState) => {
+      if (state === "Idle") {
+        ambience.resume();
+        ambience.arm();
+      } else if (state === "Input") {
+        ambience.disarm();
+      } else if (state === "Unlocking" || state === "Failing") {
+        ambience.pause();
+      }
+    });
+    document.addEventListener("visibilitychange", () => {
+      this.timer.suspended = document.hidden;
+    });
   }
 }

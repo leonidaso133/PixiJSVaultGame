@@ -6,7 +6,7 @@ import {
   Text,
   TextStyle,
 } from "pixi.js";
-import { KEYPAD } from "../config";
+import { INTRO, KEYPAD } from "../config";
 import Timer from "../logic/Timer";
 import ProgressLeds from "./ProgressLeds";
 
@@ -72,6 +72,45 @@ export default class KeypadDisplay extends Container {
 
   get text() {
     return this.value;
+  }
+
+  addOverlay(overlay: Container) {
+    this.addChildAt(overlay, this.getChildIndex(this.leds));
+  }
+
+  blank() {
+    this.roll?.kill();
+    this.held = true;
+    this.digits.alpha = 0;
+  }
+
+  boot() {
+    const { text, times, duration } = INTRO.boot;
+    const boot = gsap.timeline();
+
+    boot
+      .call(() => {
+        this.held = true;
+        this.paint(KEYPAD.text.fill, KEYPAD.text.glow);
+        this.write(text);
+      })
+      .fromTo(
+        this.digits,
+        { alpha: 0 },
+        {
+          alpha: 1,
+          duration,
+          ease: "steps(1)",
+          yoyo: true,
+          repeat: times * 2 - 1,
+          immediateRender: false,
+        },
+      )
+      .set(this.digits, { alpha: 1 })
+      .add(this.rollTo(KEYPAD.text.initial));
+    this.roll = boot;
+
+    return boot;
   }
 
   setText(value: string) {

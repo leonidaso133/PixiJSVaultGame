@@ -2,7 +2,8 @@ import gsap from "gsap";
 import { Container, Sprite, Texture } from "pixi.js";
 import { FX } from "../config";
 import { Layout } from "../core/Viewport";
-import { canvasTexture } from "../utils/textures";
+import { reducedMotion } from "../utils/motion";
+import TextureFactory from "./TextureFactory";
 
 export interface ShakeOptions {
   strength: number;
@@ -59,7 +60,8 @@ export default class ScreenFx extends Container {
   }
 
   shake(target: Container, options: ShakeOptions = FX.shake) {
-    const { strength, duration } = options;
+    const { duration } = options;
+    const strength = reducedMotion() ? 0 : options.strength;
     const state = { power: 1 };
 
     this.shakeTween?.kill();
@@ -94,7 +96,7 @@ export default class ScreenFx extends Container {
     const { size, inner, color } = FX.vignette;
     const half = size / 2;
 
-    return canvasTexture(size, size, (ctx) => {
+    return TextureFactory.canvas("vignette", size, size, (ctx) => {
       const gradient = ctx.createRadialGradient(
         half,
         half,

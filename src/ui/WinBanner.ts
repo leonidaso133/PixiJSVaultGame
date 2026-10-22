@@ -10,7 +10,7 @@ import {
 import { GlowFilter } from "pixi-filters";
 import { BANNER, TREASURE } from "../config";
 import Timer from "../logic/Timer";
-import { canvasTexture } from "../utils/textures";
+import TextureFactory from "../fx/TextureFactory";
 
 export default class WinBanner extends Container {
   label = "WinBanner";
@@ -181,7 +181,7 @@ export default class WinBanner extends Container {
   private static createRibbon() {
     const { width, height, fade, color, line } = BANNER.ribbon;
 
-    return canvasTexture(width, height, (ctx) => {
+    return TextureFactory.canvas("bannerRibbon", width, height, (ctx) => {
       const across = (rgb: string, alpha: number) => {
         const gradient = ctx.createLinearGradient(0, 0, width, 0);
 

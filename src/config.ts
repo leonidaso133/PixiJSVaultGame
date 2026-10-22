@@ -222,7 +222,6 @@ export const GLITTER = {
   sweep: {
     width: 220,
     height: 900,
-    texture: 256,
     angle: 25,
     alpha: 0.55,
     travel: 460,
@@ -345,12 +344,123 @@ export const BACKDROP = {
   fade: { color: 0x05081a, alpha: 0.92 },
 } as const;
 
-export const INTRO = { duration: 0.8, ease: "power2.out" } as const;
+export const AMBIENCE = {
+  lamps: {
+    color: 0xffc670,
+    spots: [
+      { x: 620, y: 0, width: 420, height: 260, alpha: 0.55 },
+      { x: 1780, y: 0, width: 420, height: 260, alpha: 0.55 },
+      { x: 1200, y: 0, width: 300, height: 120, alpha: 0.35 },
+      { x: 405, y: 230, width: 70, height: 520, alpha: 0.35 },
+      { x: 1992, y: 230, width: 70, height: 520, alpha: 0.35 },
+      { x: 530, y: 855, width: 240, height: 60, alpha: 0.45 },
+      { x: 1870, y: 855, width: 240, height: 60, alpha: 0.45 },
+    ],
+    flicker: {
+      dip: { min: 0.55, max: 0.85 },
+      step: 0.07,
+      rest: { min: 0.8, max: 3.2 },
+      speed: { min: 0.6, max: 1.6 },
+    },
+    breathe: { min: 0.85, duration: 2.4, ease: "sine.inOut" },
+    flickOn: {
+      stagger: 0.1,
+      steps: [0.7, 0.1, 0.9, 0.25, 1],
+      step: 0.05,
+      boost: 1.8,
+    },
+  },
+  sheen: {
+    handle: {
+      width: 120,
+      height: 520,
+      angle: 25,
+      alpha: 1,
+      travel: 240,
+      duration: 0.9,
+      ease: "power2.inOut",
+      every: { min: 4, max: 6 },
+    },
+    door: {
+      width: 240,
+      height: 1200,
+      angle: 25,
+      alpha: 0.22,
+      travel: 560,
+      duration: 1.6,
+      ease: "sine.inOut",
+      every: { min: 8, max: 12 },
+    },
+    fade: 0.25,
+  },
+  keypad: {
+    keys: { x: 696, y: 522, width: 86, height: 108, color: 0x4d7dff },
+    pulse: { min: 0.05, max: 0.22, duration: 1.8, ease: "sine.inOut" },
+    scanlines: { gap: 3, alpha: 0.18 },
+    scan: { height: 18, alpha: 0.12, duration: 2.6, rest: 1.4 },
+    flicker: { min: 0.88, step: 0.06, rest: { min: 1.5, max: 4 } },
+  },
+  floor: {
+    top: 905,
+    poly: [330, 905, 2070, 905, 2400, 1060, 2400, 1108, 0, 1108, 0, 1060],
+    bands: [
+      { y: 990, width: 900, height: 260, alpha: 0.07, duration: 9 },
+      { y: 1050, width: 600, height: 200, alpha: 0.05, duration: 13 },
+    ],
+    tint: 0xbcd4ff,
+    angle: -12,
+    ease: "sine.inOut",
+  },
+  dust: {
+    count: 14,
+    color: 0xffe2b0,
+    beams: [620, 1780],
+    top: 20,
+    bottom: 460,
+    spread: { base: 30, perY: 0.3 },
+    size: { min: 4, max: 9 },
+    alpha: { min: 0.2, max: 0.55 },
+    drift: { x: 40, y: { min: -70, max: 30 } },
+    life: { min: 4, max: 7 },
+  },
+  nudge: {
+    after: 6,
+    wobble: 6,
+    in: 0.15,
+    out: 1,
+    ease: "elastic.out(1, 0.3)",
+    arrows: { alpha: 0.9, hold: 0.6, angle: 6, ease: "elastic.out(1, 0.35)" },
+  },
+} as const;
 
-export const LOADING = {
+export const INTRO = {
+  lamps: 0.2,
+  room: 0.9,
+  handle: 1.5,
+  lcd: 1.7,
+  hint: 2.2,
+  fade: { duration: 0.8, ease: "power2.out" },
+  dim: { alpha: 0.82, steps: 6 },
+  spin: { angle: 60, duration: 0.7, ease: "back.out(1.6)" },
+  boot: { text: "88:88.88", times: 2, duration: 0.08 },
+} as const;
+
+export const LOADER = {
   fontFamily: "Share Tech Mono",
-  fontSize: 40,
+  fontSize: 44,
   fill: 0x7fe9ff,
+  glow: 0x00b4ff,
+  label: { text: "UNSEALING VAULT", fontSize: 14, letterSpacing: 4, y: -46 },
+  bar: { width: 260, height: 4, y: 40, track: 0x123048, radius: 2 },
+  ease: { duration: 0.35, ease: "power2.out" },
+  finish: { fill: 0.25, blinks: 2, blink: 0.08, fade: 0.35 },
+} as const;
+
+export const MOTION = {
+  spin: { minTurns: 1, maxTurns: 2, duration: 1 },
+  particles: 0.5,
 } as const;
 
 export const TICKER = { lagThreshold: 500, adjustedLag: 33 } as const;
+
+export const DISPLAY = { maxResolution: 2 } as const;

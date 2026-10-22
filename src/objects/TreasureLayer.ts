@@ -3,7 +3,7 @@ import { Container, Graphics, Sprite, Texture } from "pixi.js";
 import { AdvancedBloomFilter } from "pixi-filters";
 import { GLITTER, TREASURE } from "../config";
 import Glitter from "../fx/Glitter";
-import { canvasTexture } from "../utils/textures";
+import TextureFactory from "../fx/TextureFactory";
 
 export default class TreasureLayer extends Container {
   label = "TreasureLayer";
@@ -26,7 +26,7 @@ export default class TreasureLayer extends Container {
       .circle(center.x, center.y, radius)
       .fill(0xffffff);
 
-    this.sweep = new Sprite(TreasureLayer.createBand());
+    this.sweep = new Sprite(TextureFactory.warmBand());
     this.sweep.anchor.set(0.5);
     this.sweep.setSize(GLITTER.sweep.width, GLITTER.sweep.height);
     this.sweep.angle = GLITTER.sweep.angle;
@@ -131,7 +131,7 @@ export default class TreasureLayer extends Container {
     const source = Texture.from("background").source
       .resource as CanvasImageSource;
 
-    return canvasTexture(size, size, (ctx) => {
+    return TextureFactory.canvas("treasureCopy", size, size, (ctx) => {
       ctx.beginPath();
       ctx.arc(radius, radius, radius, 0, Math.PI * 2);
       ctx.clip();
@@ -146,20 +146,6 @@ export default class TreasureLayer extends Container {
         size,
         size,
       );
-    });
-  }
-
-  private static createBand() {
-    const { texture } = GLITTER.sweep;
-
-    return canvasTexture(texture, 4, (ctx) => {
-      const gradient = ctx.createLinearGradient(0, 0, texture, 0);
-
-      gradient.addColorStop(0, "rgba(255,240,200,0)");
-      gradient.addColorStop(0.5, "rgba(255,246,220,0.9)");
-      gradient.addColorStop(1, "rgba(255,240,200,0)");
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, texture, 4);
     });
   }
 }

@@ -1,7 +1,7 @@
 import gsap from "gsap";
 import { Container, Sprite } from "pixi.js";
 import { LIGHT, TREASURE } from "../config";
-import { canvasTexture, radialTexture } from "../utils/textures";
+import TextureFactory from "./TextureFactory";
 
 export default class LightBurst extends Container {
   label = "LightBurst";
@@ -20,7 +20,7 @@ export default class LightBurst extends Container {
     this.position.set(TREASURE.center.x, TREASURE.center.y);
 
     this.glow = new Sprite(
-      radialTexture(glow.texture, [
+      TextureFactory.radial("lightGlow", glow.texture, [
         [0, `rgba(${glow.color},1)`],
         [0.35, `rgba(${glow.color},0.45)`],
         [1, `rgba(${glow.color},0)`],
@@ -106,7 +106,7 @@ export default class LightBurst extends Container {
     const { texture, count, color } = LIGHT.rays;
     const half = texture / 2;
 
-    return canvasTexture(texture, texture, (ctx) => {
+    return TextureFactory.canvas("lightRays", texture, texture, (ctx) => {
       const gradient = ctx.createRadialGradient(
         half,
         half,

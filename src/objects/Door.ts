@@ -1,7 +1,8 @@
 import gsap from "gsap";
 import { Circle, Container, Renderer, Sprite } from "pixi.js";
-import { DOOR, HANDLE, SWING } from "../config";
-import { radialTexture } from "../utils/textures";
+import { AMBIENCE, DOOR, HANDLE, SWING } from "../config";
+import Sheen from "../fx/Sheen";
+import TextureFactory from "../fx/TextureFactory";
 import DoorSwing from "./DoorSwing";
 import Handle from "./Handle";
 
@@ -13,6 +14,7 @@ export default class Door extends Container {
   readonly open: Sprite;
   readonly handle: Handle;
   readonly swing: DoorSwing;
+  readonly glint: Sheen;
 
   private wallShadow: Sprite;
   private openAmount = 0;
@@ -44,7 +46,7 @@ export default class Door extends Container {
     this.handle.position.set(HANDLE.offset.x, HANDLE.offset.y);
 
     this.wallShadow = new Sprite(
-      radialTexture(shadow.size, [
+      TextureFactory.radial("doorWallShadow", shadow.size, [
         [0, "rgba(0,0,0,1)"],
         [0.55, "rgba(0,0,0,0.6)"],
         [1, "rgba(0,0,0,0)"],
@@ -58,7 +60,13 @@ export default class Door extends Container {
 
     this.swing = new DoorSwing(renderer, this.closed.texture);
 
-    this.face.addChild(this.closed, this.handle);
+    this.glint = new Sheen(
+      this.closed.texture,
+      DOOR.closed.pivot,
+      AMBIENCE.sheen.door,
+    );
+
+    this.face.addChild(this.closed, this.glint, this.handle);
     this.addChild(this.wallShadow, this.swing, this.open, this.face);
   }
 

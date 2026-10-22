@@ -19,6 +19,7 @@ class AudioManager extends EventEmitter<{ mute: [boolean] }> {
 
     window.addEventListener("pointerdown", this.unlock, true);
     window.addEventListener("keydown", this.unlock, true);
+    document.addEventListener("visibilitychange", this.onVisibility);
   }
 
   get muted() {
@@ -42,6 +43,13 @@ class AudioManager extends EventEmitter<{ mute: [boolean] }> {
     }
 
     if (this.ctx.state === "suspended") void this.ctx.resume();
+  };
+
+  private onVisibility = () => {
+    if (!this.ctx) return;
+
+    if (document.hidden) void this.ctx.suspend();
+    else void this.ctx.resume();
   };
 
   play(name: SoundName) {

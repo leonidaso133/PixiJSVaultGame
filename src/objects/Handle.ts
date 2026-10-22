@@ -2,15 +2,18 @@ import gsap from "gsap";
 import { ColorMatrixFilter, Container, Filter, Sprite } from "pixi.js";
 import { RadialBlurFilter } from "pixi-filters";
 import { audio, Whoosh } from "../audio/AudioManager";
-import { HANDLE, SHADOW } from "../config";
+import { AMBIENCE, HANDLE, INTRO, MOTION, SHADOW } from "../config";
+import Sheen from "../fx/Sheen";
 import { Direction } from "../logic/Combination";
 import Deferred from "../utils/Deferred";
+import { reducedMotion } from "../utils/motion";
 
 export default class Handle extends Container {
   label = "Handle";
 
   readonly wheel: Sprite;
   readonly shadow: Sprite;
+  readonly sheen: Sheen;
 
   steps = 0;
 
@@ -39,7 +42,13 @@ export default class Handle extends Container {
     this.wheel.label = "HandleWheel";
     this.wheel.pivot.set(HANDLE.pivot.x, HANDLE.pivot.y);
 
-    this.addChild(this.shadow, this.wheel);
+    this.sheen = new Sheen(
+      this.wheel.texture,
+      HANDLE.pivot,
+      AMBIENCE.sheen.handle,
+    );
+
+    this.addChild(this.shadow, this.wheel, this.sheen);
     this.lift = 0;
   }
 
@@ -219,9 +228,37 @@ export default class Handle extends Container {
     }
   }
 
+  tease() {
+    if (this.hovered || this.isAnimating) return;
+
+    const { wobble, in: rise, out, ease } = AMBIENCE.nudge;
+
+    this.hoverTween?.kill();
+    this.hoverTween = gsap
+      .timeline()
+      .to(this, { wobble, duration: rise, ease: "power2.out" })
+      .to(this, {
+        wobble: 0,
+        duration: out,
+        ease: reducedMotion() ? "sine.inOut" : ease,
+      });
+  }
+
+  introSpin() {
+    const { angle, duration, ease } = INTRO.spin;
+
+    return gsap.fromTo(
+      this,
+      { angle: this.targetAngle - angle },
+      { angle: this.targetAngle, duration, ease },
+    );
+  }
+
   spinCrazy() {
-    const { minTurns, maxTurns, duration, ease, overshoot, settle } =
-      HANDLE.spin;
+    const { ease, overshoot, settle } = HANDLE.spin;
+    const { minTurns, maxTurns, duration } = reducedMotion()
+      ? MOTION.spin
+      : HANDLE.spin;
     const turns = gsap.utils.random(minTurns, maxTurns, 1);
     const sign = Math.random() < 0.5 ? 1 : -1;
     const stepsPerTurn = 360 / HANDLE.stepAngle;
@@ -309,6 +346,7 @@ export default class Handle extends Container {
 
     this.wheel.angle = angle;
     this.shadow.angle = angle;
+    this.sheen.clip.angle = angle;
   }
 
   private takeOver(timeline: gsap.core.Timeline) {

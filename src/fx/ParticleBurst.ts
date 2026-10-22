@@ -1,7 +1,8 @@
 import gsap from "gsap";
 import { Container, Sprite, Texture } from "pixi.js";
-import { PARTICLES } from "../config";
-import { canvasTexture, radialTexture } from "../utils/textures";
+import { MOTION, PARTICLES } from "../config";
+import { reducedMotion } from "../utils/motion";
+import TextureFactory from "./TextureFactory";
 
 const random = gsap.utils.random;
 
@@ -19,7 +20,7 @@ export default class ParticleBurst extends Container {
 
     const coin = ParticleBurst.createCoin();
     const gem = ParticleBurst.createGem();
-    const dust = radialTexture(PARTICLES.dust.texture, [
+    const dust = TextureFactory.radial("dustPuff", PARTICLES.dust.texture, [
       [0, "rgba(255,255,255,0.9)"],
       [0.5, "rgba(255,255,255,0.35)"],
       [1, "rgba(255,255,255,0)"],
@@ -54,7 +55,7 @@ export default class ParticleBurst extends Container {
     this.burstTimeline?.kill();
     this.burstTimeline = timeline;
 
-    this.treasure.forEach((sprite) => {
+    ParticleBurst.active(this.treasure).forEach((sprite) => {
       const life = random(duration.min, duration.max);
       const size =
         random(scale.min, scale.max) *
@@ -111,7 +112,7 @@ export default class ParticleBurst extends Container {
     this.dustTimeline?.kill();
     this.dustTimeline = timeline;
 
-    this.puffs.forEach((sprite) => {
+    ParticleBurst.active(this.puffs).forEach((sprite) => {
       const life = random(duration.min, duration.max);
       const direction = random(0, 360);
       const radians = (direction * Math.PI) / 180;
@@ -152,6 +153,12 @@ export default class ParticleBurst extends Container {
     return timeline;
   }
 
+  private static active(pool: Sprite[]) {
+    return reducedMotion()
+      ? pool.slice(0, Math.ceil(pool.length * MOTION.particles))
+      : pool;
+  }
+
   private pooled(sprite: Sprite) {
     sprite.anchor.set(0.5);
     sprite.visible = false;
@@ -164,7 +171,7 @@ export default class ParticleBurst extends Container {
     const size = PARTICLES.texture;
     const half = size / 2;
 
-    return canvasTexture(size, size, (ctx) => {
+    return TextureFactory.canvas("coin", size, size, (ctx) => {
       const face = ctx.createRadialGradient(
         half * 0.7,
         half * 0.6,
@@ -196,7 +203,7 @@ export default class ParticleBurst extends Container {
     const size = PARTICLES.texture;
     const half = size / 2;
 
-    return canvasTexture(size, size, (ctx) => {
+    return TextureFactory.canvas("gem", size, size, (ctx) => {
       ctx.fillStyle = "#d9d9d9";
       ctx.beginPath();
       ctx.moveTo(half, 2);

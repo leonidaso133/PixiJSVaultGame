@@ -1,6 +1,6 @@
 import gsap from "gsap";
-import { Container, Renderer } from "pixi.js";
-import { PUSH, TREASURE } from "../config";
+import { Container, Graphics, Renderer, Sprite, Texture } from "pixi.js";
+import { DESIGN, PUSH, TREASURE } from "../config";
 import { Layout } from "../core/Viewport";
 import LightBurst from "../fx/LightBurst";
 import ParticleBurst from "../fx/ParticleBurst";
@@ -10,6 +10,7 @@ import Door from "../objects/Door";
 import KeypadDisplay from "../objects/KeypadDisplay";
 import TreasureLayer from "../objects/TreasureLayer";
 import WinBanner from "../ui/WinBanner";
+import { reducedMotion } from "../utils/motion";
 
 export default class VaultScene extends Container {
   label = "VaultScene";
@@ -20,6 +21,8 @@ export default class VaultScene extends Container {
   readonly doorLayer = new Container({ label: "DoorLayer" });
   readonly uiLayer = new Container({ label: "UILayer" });
   readonly fxLayer = new Container({ label: "FXLayer" });
+  readonly ambienceLayer = new Container({ label: "AmbienceLayer" });
+  readonly blackout = new Sprite({ texture: Texture.WHITE, tint: 0x000000 });
 
   readonly background: Background;
   readonly treasure: TreasureLayer;
@@ -36,6 +39,10 @@ export default class VaultScene extends Container {
 
   constructor(renderer: Renderer) {
     super();
+
+    const ambienceClip = new Graphics()
+      .rect(0, 0, DESIGN.width, DESIGN.height)
+      .fill(0xffffff);
 
     this.background = new Background();
     this.treasure = new TreasureLayer();
@@ -58,7 +65,17 @@ export default class VaultScene extends Container {
       this.doorLayer,
       this.fxLayer,
       this.uiLayer,
+      this.blackout,
+      this.ambienceLayer,
     );
+    this.blackout.label = "Blackout";
+    this.blackout.position.set(-DESIGN.width / 2, -DESIGN.height / 2);
+    this.blackout.setSize(DESIGN.width * 2, DESIGN.height * 2);
+    this.blackout.visible = false;
+    this.ambienceLayer.eventMode = "none";
+    this.ambienceLayer.addChild(ambienceClip);
+    this.ambienceLayer.mask = ambienceClip;
+
     this.lens.pivot.set(TREASURE.center.x, TREASURE.center.y);
     this.lens.position.set(TREASURE.center.x, TREASURE.center.y);
     this.lens.addChild(this.camera);
@@ -76,7 +93,10 @@ export default class VaultScene extends Container {
 
   pushTo(value: number, options: { duration: number; ease: string }) {
     this.pushTween?.kill();
-    this.pushTween = gsap.to(this, { push: value, ...options });
+    this.pushTween = gsap.to(this, {
+      push: reducedMotion() ? 0 : value,
+      ...options,
+    });
 
     return this.pushTween;
   }

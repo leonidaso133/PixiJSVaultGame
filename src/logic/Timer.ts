@@ -2,6 +2,8 @@ export default class Timer {
   private elapsedSeconds = 0;
   private running = false;
 
+  suspended = false;
+
   get elapsed() {
     return this.elapsedSeconds;
   }
@@ -24,7 +26,7 @@ export default class Timer {
   }
 
   update(deltaSeconds: number) {
-    if (this.running) this.elapsedSeconds += deltaSeconds;
+    if (this.running && !this.suspended) this.elapsedSeconds += deltaSeconds;
   }
 
   static format(seconds: number) {

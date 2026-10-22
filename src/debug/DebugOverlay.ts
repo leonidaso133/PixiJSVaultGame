@@ -1,7 +1,7 @@
 import gsap from "gsap";
 import { Assets, Container, Graphics, Sprite, Texture } from "pixi.js";
 import { audio } from "../audio/AudioManager";
-import { DOOR, HANDLE, KEYPAD, SAFE_RECT, SHADOW, TREASURE } from "../config";
+import { DOOR, KEYPAD, SAFE_RECT, SHADOW, TREASURE } from "../config";
 import GameStateMachine from "../logic/GameStateMachine";
 import VaultScene from "../scenes/VaultScene";
 import previewStartUrl from "../../dreamshot challenge/previews/preview start.jpg?url";
@@ -54,8 +54,7 @@ export default class DebugOverlay extends Container {
     this.show("1");
 
     window.addEventListener("keydown", (event) => {
-      if (event.key === "r") this.spin();
-      else if (event.key === "3") this.scrub();
+      if (event.key === "3") this.scrub();
       else this.show(event.key);
     });
     window.addEventListener("pointermove", (event) => {
@@ -97,17 +96,6 @@ export default class DebugOverlay extends Container {
     this.vault.door.open.visible = key === "2";
     this.vault.door.closed.visible = key !== "2";
     this.vault.door.handle.visible = key !== "2";
-  }
-
-  private spin() {
-    const handle = this.vault.door.handle;
-
-    gsap.to(handle, {
-      angle: handle.angle + HANDLE.stepAngle,
-      duration: 0.4,
-      ease: "power2.inOut",
-      overwrite: true,
-    });
   }
 
   private cross(g: Graphics, x: number, y: number, color: number) {
